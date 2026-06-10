@@ -1,0 +1,8 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - nl.rhaydus.SerializationKt.configureSerialization
+      - nl.rhaydus.ResourcesKt.configureResources
+      - nl.rhaydus.RoutingKt.configureRouting
