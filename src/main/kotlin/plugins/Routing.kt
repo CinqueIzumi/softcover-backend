@@ -6,7 +6,7 @@ import io.ktor.server.routing.*
 import nl.rhaydus.feature.settings.SettingsRepositoryImpl
 import nl.rhaydus.feature.settings.settingsRoutes
 import nl.rhaydus.feature.user.meRoutes
-import nl.rhaydus.hardcover.hardcoverClient
+import nl.rhaydus.feature.user.userDataSource
 
 fun Application.configureRouting() {
     val repo = SettingsRepositoryImpl(db = database)
@@ -15,7 +15,7 @@ fun Application.configureRouting() {
         authenticate("external") {
             settingsRoutes(repo = repo)
 
-            meRoutes(client = hardcoverClient)
+            meRoutes(dataSource = userDataSource)
         }
     }
 }

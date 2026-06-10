@@ -1,47 +1,57 @@
 package nl.rhaydus.hardcover
 
 import com.apollographql.apollo.ApolloClient
-import com.github.benmanes.caffeine.cache.AsyncCache
-import com.github.benmanes.caffeine.cache.Caffeine
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.future.await
-import kotlinx.coroutines.future.future
-import nl.rhaydus.feature.user.HardcoverUser
-import nl.rhaydus.graphql.MeQuery
-import java.time.Duration
+import com.apollographql.apollo.api.ApolloResponse
+import com.apollographql.apollo.api.Mutation
+import com.apollographql.apollo.api.Operation
+import com.apollographql.apollo.api.Query
+import com.apollographql.apollo.exception.ApolloException
+import com.apollographql.apollo.exception.ApolloHttpException
+import nl.rhaydus.core.model.HardcoverException
 
 class HardcoverClient(
     private val apollo: ApolloClient,
 ) {
-    private val cache: AsyncCache<String, HardcoverUser?> = Caffeine
-        .newBuilder()
-        .expireAfterWrite(Duration.ofMinutes(5))
-        .maximumSize(10_000)
-        .buildAsync()
+    suspend fun <D : Query.Data> query(
+        token: String,
+        query: Query<D>,
+    ): D {
+        val response = try {
+            apollo.query(query).addHttpHeader("Authorization", "Bearer $token").execute()
+        } catch (e: ApolloException) {
+            throw e.toHardcoverException()
+        }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    suspend fun resolveUser(token: String): HardcoverUser? {
-        return cache.get(token) { key, _ ->
-            scope.future { fetchUser(token = key) }
-        }.await()
+        return response.dataOrThrowCustom()
     }
 
-    private suspend fun fetchUser(token: String): HardcoverUser? {
-        val response = apollo
-            .query(MeQuery())
-            .addHttpHeader("Authorization", "Bearer $token")
-            .execute()
+    suspend fun <D : Mutation.Data> mutate(
+        token: String,
+        mutation: Mutation<D>,
+    ): D {
+        val response = try {
+            apollo.mutation(mutation).addHttpHeader("Authorization", "Bearer $token").execute()
+        } catch (e: ApolloException) {
+            throw e.toHardcoverException()
+        }
 
-        if (response.hasErrors()) return null
+        return response.dataOrThrowCustom()
+    }
 
-        val me = response.data?.me?.firstOrNull() ?: return null
+    private fun <D : Operation.Data> ApolloResponse<D>.dataOrThrowCustom(): D {
+        if (hasErrors()) {
+            val errorMessage = errors?.joinToString { it.message } ?: "No errors were found"
 
-        return HardcoverUser(
-            id = me.id,
-            username = me.username,
-        )
+            throw HardcoverException.GraphQLError(message = errorMessage)
+        }
+
+        return data ?: throw HardcoverException.EmptyResponse()
+    }
+
+    private fun ApolloException.toHardcoverException(): HardcoverException {
+        return when {
+            this is ApolloHttpException && statusCode == 401 -> HardcoverException.Unauthorized()
+            else -> HardcoverException.Unavailable(this)
+        }
     }
 }

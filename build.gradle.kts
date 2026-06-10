@@ -40,6 +40,7 @@ dependencies {
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.resources)
+    implementation(ktorLibs.server.statusPages)
     implementation(libs.logback.classic)
 
     // Database storage

@@ -6,7 +6,8 @@ ktor:
       - nl.rhaydus.plugins.SerializationKt.configureSerialization
       - nl.rhaydus.plugins.ResourcesKt.configureResources
       - nl.rhaydus.plugins.DatabaseKt.configureDatabases
-      - nl.rhaydus.plugins.GraphQLClientKt.configureGraphQLClient
+      - nl.rhaydus.plugins.StatusPagesKt.configureStatusPages
+      - nl.rhaydus.plugins.NetworkClientKt.configureGraphQLClient
       - nl.rhaydus.plugins.AuthenticationKt.configureAuthentication
       - nl.rhaydus.plugins.RoutingKt.configureRouting
 

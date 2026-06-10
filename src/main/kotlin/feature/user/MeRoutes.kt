@@ -5,14 +5,13 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import nl.rhaydus.core.model.UserPrincipal
-import nl.rhaydus.hardcover.HardcoverClient
 
-fun Route.meRoutes(client: HardcoverClient) {
+fun Route.meRoutes(dataSource: UserDataSource) {
     get("/me") {
         val token: String = call.principal<UserPrincipal>()?.token
             ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
-        val user: HardcoverUser = client.resolveUser(token = token)
+        val user: HardcoverUser = dataSource.resolveUser(token = token)
             ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
         call.respond(user)
