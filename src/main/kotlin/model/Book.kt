@@ -1,4 +1,4 @@
-package nl.rhaydus
+package nl.rhaydus.model
 
 import io.ktor.resources.Resource
 import kotlinx.serialization.Serializable
