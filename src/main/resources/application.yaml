@@ -5,4 +5,12 @@ ktor:
     modules:
       - nl.rhaydus.SerializationKt.configureSerialization
       - nl.rhaydus.ResourcesKt.configureResources
+      - nl.rhaydus.DatabaseKt.configureDatabases
       - nl.rhaydus.RoutingKt.configureRouting
+
+storage:
+  jdbcUrl: "jdbc:h2:file:./data/settings;DB_CLOSE_DELAY=-1"
+  driverClassName: "org.h2.Driver"
+  # Move these out of application.yaml once actually implementing this
+  user: ""
+  password: ""

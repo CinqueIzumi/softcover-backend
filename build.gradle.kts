@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(ktorLibs.plugins.ktor)
@@ -23,6 +22,13 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.resources)
     implementation(libs.logback.classic)
+
+    // Database storage
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.java.time)
+    implementation(libs.h2)
+    implementation(libs.hikari)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

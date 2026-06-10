@@ -1,15 +1,17 @@
 package nl.rhaydus
 
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.request.receive
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import nl.rhaydus.model.Book
 import nl.rhaydus.model.UserSettings
 
 fun Application.configureRouting() {
-    val repo = MemorySettingsRepositoryImpl()
+    val database = attributes[DatabaseKey]
+
+    val repo = PersistentSettingsRepositoryImpl(db = database)
 
     routing {
         bookRoutes()
