@@ -1,4 +1,4 @@
-package nl.rhaydus.table
+package nl.rhaydus.feature.settings
 
 import org.jetbrains.exposed.v1.core.Table
 

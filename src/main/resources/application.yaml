@@ -3,14 +3,19 @@ ktor:
     port: 8080
   application:
     modules:
-      - nl.rhaydus.SerializationKt.configureSerialization
-      - nl.rhaydus.ResourcesKt.configureResources
-      - nl.rhaydus.DatabaseKt.configureDatabases
-      - nl.rhaydus.RoutingKt.configureRouting
+      - nl.rhaydus.plugins.SerializationKt.configureSerialization
+      - nl.rhaydus.plugins.ResourcesKt.configureResources
+      - nl.rhaydus.plugins.DatabaseKt.configureDatabases
+      - nl.rhaydus.plugins.GraphQLClientKt.configureGraphQLClient
+      - nl.rhaydus.plugins.AuthenticationKt.configureAuthentication
+      - nl.rhaydus.plugins.RoutingKt.configureRouting
 
 storage:
   jdbcUrl: "jdbc:h2:file:./data/settings;DB_CLOSE_DELAY=-1"
   driverClassName: "org.h2.Driver"
-  # Move these out of application.yaml once actually implementing this
-  user: ""
-  password: ""
+  # Secrets are read from the environment; defaults (after the colon) are dev-only.
+  user: "$DB_USER:"
+  password: "$DB_PASSWORD:"
+
+hardcover:
+  graphqlUrl: "https://api.hardcover.app/v1/graphql"

@@ -1,26 +1,25 @@
-package nl.rhaydus
+package nl.rhaydus.plugins
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
 import io.ktor.util.*
-import nl.rhaydus.table.SettingsTable
+import nl.rhaydus.feature.settings.SettingsTable
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-
-val DatabaseKey = AttributeKey<Database>("Database")
-
 
 fun Application.configureDatabases() {
     val dataSource = hikari()
 
     val db = Database.connect(dataSource)
 
-    attributes.put(DatabaseKey, db)
+    setDatabase(db)
 
     // TODO: This is supposed to be dev only. Alternatives suggested were Flyway/Liquibase, investigate these?
-    transaction { SchemaUtils.create(SettingsTable) }
+    transaction {
+        SchemaUtils.create(SettingsTable)
+    }
 }
 
 private fun Application.hikari(): HikariDataSource {
@@ -34,3 +33,10 @@ private fun Application.hikari(): HikariDataSource {
 
     return HikariDataSource(config)
 }
+
+private val DatabaseKey = AttributeKey<Database>("Database")
+
+val Application.database: Database
+    get() = attributes[DatabaseKey]
+
+fun Application.setDatabase(db: Database) = attributes.put(DatabaseKey, db)

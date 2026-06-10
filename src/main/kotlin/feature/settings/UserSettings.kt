@@ -1,10 +1,6 @@
-package nl.rhaydus.model
+package nl.rhaydus.feature.settings
 
 import kotlinx.serialization.Serializable
-
-enum class AppTheme {
-    LIGHT, DARK, SYSTEM
-}
 
 @Serializable
 data class UserSettings(
