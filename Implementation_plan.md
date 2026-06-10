@@ -44,17 +44,21 @@ Either is fine — decide now so the pattern is consistent. The steps below assu
 These four cross-cutting behaviors (spec §6) are where a naive 1:1 translation
 breaks. Build them as reusable helpers the first time you need them, not inline:
 
-1. **Error model (§3.1)** — a small helper that maps Apollo results to HTTP:
+1. ✅ **Error model (§3.1)** — implemented as typed exceptions + a central `StatusPages`
+   handler rather than an inline helper:
    - data present → 200 with body
-   - populated `errors[]` → `422 { "error": "<joined messages>" }`
-   - missing single resource → `404`
-   - empty list → `200 []`
-   Put it somewhere shared (e.g. `core/network/`).
-2. **Scalar formats (§3.2)** — date/timestamp as strings, `releaseYear = -1` sentinel,
-   `rating` rounded to 1 decimal. Centralize the rounding + sentinel logic in mappers.
+   - populated `errors[]` → `422 { "error": "<joined messages>" }` (`HardcoverException.GraphQLError`)
+   - missing single resource → `404` (`SoftcoverException.ResourceNotFound`, via `orNotFound()`)
+   - empty list → `200 []` (route returns the list; nothing extra needed)
+   - upstream failure / no-data-no-errors → `401`/`502` (`HardcoverException`)
+   Both exception hierarchies are sealed, so the `StatusPages` `when` is exhaustive.
+2. ✅ **Scalar formats (§3.2)** — `core/mapping/Scalars.kt`: `roundRating`,
+   `releaseYearOrSentinel` (`-1`), `passthroughDate`. Unit-tested in `ScalarsTest`.
 3. **Canonical merge (§6.2)** — needed first in Step 2 (`GET /books/{id}`), reused in
-   `/me/books`, search, trending. Write it once.
-4. **Series position parsing (§6.1)** — pure function, fully unit-testable on its own.
+   `/me/books`, search, trending. Write it once. *Deferred to Step 2: it operates on the
+   `Book`/`UserBook` model, which does not exist until then.*
+4. ✅ **Series position parsing (§6.1)** — `core/mapping/SeriesPosition.kt`
+   (`parseSeriesPositions`), fully unit-tested in `SeriesPositionTest` (all five cases).
 
 Steps below call out exactly when each is first needed.
 
@@ -62,12 +66,17 @@ Steps below call out exactly when each is first needed.
 
 ## Phase 0 — Foundations (no new endpoint, but unblocks everything)
 
-- [ ] **0a. Error helper (§3.1).** Apollo result → Ktor response mapper. Unit-test it.
-- [ ] **0b. Shared scalar/mapping helpers (§3.2):** rating rounding, `-1` release-year
-      sentinel, date passthrough. Unit-test the pure bits.
-- [ ] **0c. Decide the data-source layout** (per above) and document it in a one-liner.
+- ✅ **0a. Error helper (§3.1).** Done via typed exceptions + `StatusPages` (not an
+      inline mapper): `HardcoverException` (sealed) for upstream failures →
+      `422`/`401`/`502`, `SoftcoverException` (sealed) for adapter decisions → `404`.
+      `orNotFound()` is the reusable single-resource guard.
+- ✅ **0b. Shared scalar/mapping helpers (§3.2):** rating rounding, `-1` release-year
+      sentinel, date passthrough — in `core/mapping/Scalars.kt`, unit-tested.
+- ✅ **0c. Decide the data-source layout.** Per-feature data sources
+      (`UserDataSource` (+`Impl`) owns cache + GraphQL→domain mapping); `HardcoverClient`
+      is a thin transport exposing generic `query`/`mutate` with auth + error→exception.
 
-*Test:* unit tests only; no HTTP surface yet.
+*Test:* unit tests only; no HTTP surface yet. `ScalarsTest` + `SeriesPositionTest` pass.
 
 ---
 
@@ -243,9 +252,9 @@ In dependency order, each verifiable via `GET /me/lists`:
 
 | Behavior (spec §)            | First needed in   | Reused in                          |
 |------------------------------|-------------------|------------------------------------|
-| Error model (§3.1)           | Step 2            | everywhere                          |
-| Scalars/rounding/sentinel (§3.2) | Step 2        | all catalog/library reads           |
-| Series parsing (§6.1)        | Step 2            | every `Book` response               |
+| Error model (§3.1) ✅ built   | Step 2            | everywhere                          |
+| Scalars/rounding/sentinel (§3.2) ✅ built | Step 2 | all catalog/library reads           |
+| Series parsing (§6.1) ✅ built | Step 2          | every `Book` response               |
 | Canonical merge (§6.2)       | Step 2            | Steps 3, 8, 11, 12                  |
 | Slate review (§6.3)          | Step 15           | reused in library reads (Step 8)*   |
 | Profile pages/streak (§6.4)  | Step 10           | —                                   |
