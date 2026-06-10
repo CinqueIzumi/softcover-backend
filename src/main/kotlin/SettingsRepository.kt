@@ -2,6 +2,7 @@ package nl.rhaydus
 
 import nl.rhaydus.model.AppTheme
 import nl.rhaydus.model.UserSettings
+import nl.rhaydus.table.SettingsTable
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
