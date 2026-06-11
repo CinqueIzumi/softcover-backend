@@ -5,6 +5,7 @@ sealed class SoftcoverException(
     cause: Throwable? = null,
 ) : Exception(message, cause) {
     class ResourceNotFound(message: String = "Resource not found") : SoftcoverException(message)
+    class Unauthorized(message: String = "Unauthorized") : SoftcoverException(message)
 }
 
 fun <T : Any> T?.orNotFound(message: String = "Resource not found"): T =

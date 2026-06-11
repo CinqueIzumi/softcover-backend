@@ -4,4 +4,6 @@ import nl.rhaydus.core.model.Book
 
 interface BookDataSource {
     suspend fun getBookById(id: Int, token: String): Book
+
+    suspend fun getBooksByIds(ids: List<Int>, token: String): List<Book>
 }

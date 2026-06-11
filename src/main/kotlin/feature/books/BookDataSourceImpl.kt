@@ -11,6 +11,7 @@ import nl.rhaydus.core.mapping.toBook
 import nl.rhaydus.core.model.Book
 import nl.rhaydus.core.model.orNotFound
 import nl.rhaydus.graphql.GetBookByIdQuery
+import nl.rhaydus.graphql.GetBooksByIdsQuery
 import nl.rhaydus.hardcover.HardcoverClient
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
@@ -35,23 +36,60 @@ class BookDataSourceImpl(
         }.await()
 
         if (book.id != id) {
-            cache.asMap().putIfAbsent(book.id, CompletableFuture.completedFuture(book))
+            cacheBookUnderOwnId(book = book)
         }
 
         return book
+    }
+
+    override suspend fun getBooksByIds(
+        ids: List<Int>,
+        token: String,
+    ): List<Book> {
+        // TODO: Maybe throw an error here instead, as an empty list of ids should fail?
+        if (ids.isEmpty()) return emptyList()
+
+        val byId: Map<Int, Book> = cache.getAll(ids.toSet()) { missing, _ ->
+            scope.future {
+                val fetched = fetchBooksByIds(missing.toList(), token)
+                val resolved = resolveCanonicalBooks(fetched) { canonicalIds ->
+                    fetchBooksByIds(canonicalIds, token)
+                }
+
+                fetched.indices.associate { i -> fetched[i].id to resolved[i] }
+            }
+        }.await()
+
+        byId.values.forEach(::cacheBookUnderOwnId)
+
+        return ids.mapNotNull { byId[it] }
+    }
+
+    private fun cacheBookUnderOwnId(book: Book) {
+        cache.asMap().putIfAbsent(book.id, CompletableFuture.completedFuture(book))
+    }
+
+    private suspend fun fetchBooksByIds(
+        ids: List<Int>,
+        token: String,
+    ): List<Book> {
+        return ids.chunked(200).flatMap { chunk ->
+            client
+                .query(token = token, query = GetBooksByIdsQuery(ids = chunk))
+                .books
+                .map { it.bookDetailFragment.toBook() }
+        }
     }
 
     private suspend fun resolveBook(
         id: Int,
         token: String,
     ): Book {
-        val initialBook = fetchBookById(id = id, token = token)
+        val book = fetchBookById(id = id, token = token)
 
-        return if (initialBook.canonicalId != null && initialBook.canonicalId != id) {
-            fetchBookById(id = initialBook.canonicalId, token = token)
-        } else {
-            initialBook
-        }
+        return resolveCanonicalBooks(books = listOf(book)) { ids ->
+            ids.map { fetchBookById(id = id, token = token) }
+        }.first()
     }
 
     private suspend fun fetchBookById(
@@ -70,4 +108,28 @@ class BookDataSourceImpl(
 
         return book
     }
+
+    private suspend fun resolveCanonicalBooks(
+        books: List<Book>,
+        fetchByIds: suspend (List<Int>) -> List<Book>,
+    ): List<Book> {
+        val redirects = books.filter { it.isCanonicalRedirect() }
+        if (redirects.isEmpty()) return books
+
+        val present = books.associateBy { it.id }
+
+        // Ensure canonical ids, which are already in the redirects list, are skipped to prevent fetching duplicates
+        val canonicalIds = redirects
+            .mapNotNull { it.canonicalId }
+            .distinct()
+            .filter { it !in present }
+
+        val survivors = (present + fetchByIds(canonicalIds).associateBy { it.id })
+
+        return books.map { book ->
+            if (book.isCanonicalRedirect()) survivors[book.canonicalId] ?: book else book
+        }
+    }
+
+    private fun Book.isCanonicalRedirect(): Boolean = canonicalId != null && canonicalId != id
 }
