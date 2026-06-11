@@ -2,7 +2,6 @@ package nl.rhaydus.feature.user
 
 import com.github.benmanes.caffeine.cache.AsyncCache
 import com.github.benmanes.caffeine.cache.Caffeine
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,12 +28,11 @@ class UserDataSourceImpl(
     }
 
     private suspend fun fetchUser(token: String): HardcoverUser? {
-        return try {
-            client.query(token, MeQuery()).me.firstOrNull()?.let { HardcoverUser(it.id, it.username) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            null
-        }
+        return client
+            .queryCatching(token, MeQuery())
+            .getOrNull()
+            ?.me
+            ?.firstOrNull()
+            ?.let { HardcoverUser(it.id, it.username) }
     }
 }

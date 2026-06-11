@@ -1,0 +1,10 @@
+fragment BookSeriesFragment on book_series{
+    position
+    details
+
+    series {
+        id
+        name
+        primary_books_count
+    }
+}

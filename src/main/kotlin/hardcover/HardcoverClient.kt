@@ -7,11 +7,22 @@ import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
 import com.apollographql.apollo.exception.ApolloException
 import com.apollographql.apollo.exception.ApolloHttpException
+import io.ktor.utils.io.*
 import nl.rhaydus.core.model.HardcoverException
 
 class HardcoverClient(
     private val apollo: ApolloClient,
 ) {
+    suspend fun <D : Query.Data> queryCatching(
+        token: String,
+        query: Query<D>,
+    ): Result<D> = runCancellable { query(token, query) }
+
+    suspend fun <D : Mutation.Data> mutateCatching(
+        token: String,
+        mutation: Mutation<D>,
+    ): Result<D> = runCancellable { mutate(token, mutation) }
+
     suspend fun <D : Query.Data> query(
         token: String,
         query: Query<D>,
@@ -36,6 +47,16 @@ class HardcoverClient(
         }
 
         return response.dataOrThrowCustom()
+    }
+
+    private suspend fun <T> runCancellable(block: suspend () -> T): Result<T> {
+        return try {
+            Result.success(block())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private fun <D : Operation.Data> ApolloResponse<D>.dataOrThrowCustom(): D {

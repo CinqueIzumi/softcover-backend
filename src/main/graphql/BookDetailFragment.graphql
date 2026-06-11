@@ -1,0 +1,7 @@
+fragment BookDetailFragment on books {
+    ...BookListFragment
+    users_count
+    default_cover_edition {
+        ...EditionFragment
+    }
+}

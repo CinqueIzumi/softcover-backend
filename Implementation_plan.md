@@ -54,9 +54,10 @@ breaks. Build them as reusable helpers the first time you need them, not inline:
    Both exception hierarchies are sealed, so the `StatusPages` `when` is exhaustive.
 2. ✅ **Scalar formats (§3.2)** — `core/mapping/Scalars.kt`: `roundRating`,
    `releaseYearOrSentinel` (`-1`), `passthroughDate`. Unit-tested in `ScalarsTest`.
-3. **Canonical merge (§6.2)** — needed first in Step 2 (`GET /books/{id}`), reused in
-   `/me/books`, search, trending. Write it once. *Deferred to Step 2: it operates on the
-   `Book`/`UserBook` model, which does not exist until then.*
+3. ✅ **Canonical merge (§6.2)** — single-book variant built in Step 2
+   (`BookDataSourceImpl.resolveBook` + `canonicalIdOrNull()`). The **library variant**
+   (overwrite catalog metadata, keep user fields) is still TODO for Step 8; reused again
+   in search/trending.
 4. ✅ **Series position parsing (§6.1)** — `core/mapping/SeriesPosition.kt`
    (`parseSeriesPositions`), fully unit-tested in `SeriesPositionTest` (all five cases).
 
@@ -96,13 +97,20 @@ Bad token → `401`.
 
 Order chosen so each step is testable with nothing but a known book/edition id.
 
-### Step 2 — `GET /books/{id}`  ← `GetBookById`
+### Step 2 — `GET /books/{id}` ✅ (done)  ← `GetBookById`
 First real catalog read. Introduces the full `Book` model (§4.1) and its nested
 types (`Author` §4.3, `BookSeries` §4.4, `Tag` §4.5, `BookEdition` §4.2).
-- First use of **canonical merge (§6.2)** — single-book variant (refetch canonical,
-  null out `canonicalId`).
-- First use of **series parsing (§6.1)**.
-- `404` when not found.
+- ✅ Full `Book` model + nested types (`core/model/Book.kt`), mapped from
+  `BookDetailFragment` in `core/mapping/BookMapper.kt` (`toBook()`).
+- ✅ **Canonical merge (§6.2)** — single-book variant: `BookDataSourceImpl.resolveBook`
+  refetches the canonical book when `canonicalId != null && != id`; `canonicalIdOrNull()`
+  yields `null` on the survivor. The resolved book is also cached under the canonical id.
+- ✅ **Series parsing (§6.1)** — `parsePositionDetails` (range/single/fallback) feeds
+  `positionsInSeries`.
+- ✅ Scalars (§3.2): rating rounding, `-1` release-year sentinel, date passthrough;
+  custom scalars (`date`, `numeric`, `float8`, `bigint`) mapped in `build.gradle.kts`.
+- ✅ `404` when not found, via `orNotFound()`.
+- ✅ Route wired under `authenticate("external")`; token from `UserPrincipal`.
 
 *Test:* `GET /books/<knownId>`; verify a known canonical-redirect id returns the
 survivor; verify a bogus id → `404`.
@@ -255,7 +263,7 @@ In dependency order, each verifiable via `GET /me/lists`:
 | Error model (§3.1) ✅ built   | Step 2            | everywhere                          |
 | Scalars/rounding/sentinel (§3.2) ✅ built | Step 2 | all catalog/library reads           |
 | Series parsing (§6.1) ✅ built | Step 2          | every `Book` response               |
-| Canonical merge (§6.2)       | Step 2            | Steps 3, 8, 11, 12                  |
+| Canonical merge (§6.2) ✅ single-book built | Step 2 | Steps 3, 8 (library variant), 11, 12 |
 | Slate review (§6.3)          | Step 15           | reused in library reads (Step 8)*   |
 | Profile pages/streak (§6.4)  | Step 10           | —                                   |
 | List reorder two-step (§6.5) | Step 21.5         | —                                   |

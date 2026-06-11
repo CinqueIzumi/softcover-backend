@@ -22,6 +22,10 @@ apollo {
 
         // Hasura custom scalars → Kotlin types (add more as new queries use them, e.g. bigint/timestamptz).
         mapScalarToKotlinString("citext")
+        mapScalarToKotlinString("date")
+        mapScalarToKotlinDouble("numeric")
+        mapScalarToKotlinDouble("float8")
+        mapScalarToKotlinInt("bigint")
 
         // One-time schema fetch (introspection needs your personal token):
         //   HARDCOVER_TOKEN=<token> ./gradlew downloadHardcoverApolloSchemaFromIntrospection

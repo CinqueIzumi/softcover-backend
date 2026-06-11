@@ -1,0 +1,23 @@
+fragment EditionFragment on editions {
+    id
+    canonical_id
+    title
+    book_id
+    isbn_10
+    isbn_13
+    pages
+    audio_seconds
+    publisher {
+        name
+    }
+    image {
+        url
+    }
+    fallbackImages: images {
+        url
+    }
+    release_year
+    release_date
+    edition_format
+    reading_format_id
+}

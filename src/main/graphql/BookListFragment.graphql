@@ -1,0 +1,30 @@
+fragment BookListFragment on books {
+    id
+    canonical {
+        id
+    }
+    title
+    headline
+    description
+    rating
+    image {
+        url
+    }
+    release_year
+    release_date
+    users_count
+    ratings_count
+    compilation
+    book_series(order_by: { position: asc }) {
+        ...BookSeriesFragment
+    }
+    contributions {
+        author {
+            id
+            name
+        }
+    }
+    taggable_counts(order_by: { count: desc }) {
+        ...BookTagFragment
+    }
+}

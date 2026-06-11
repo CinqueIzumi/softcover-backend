@@ -5,3 +5,6 @@
 
 # H2 database files
 /data/
+
+# IntelliJ IDEA
+.idea/
