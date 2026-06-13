@@ -41,3 +41,10 @@ fun ApplicationCall.requireParameter(name: String): String =
 
 fun ApplicationCall.requireIntParameter(name: String): Int =
     parameters[name]?.toIntOrNull() ?: throw SoftcoverException.BadRequest("Invalid path parameter: $name")
+
+fun ApplicationCall.requireIntListQueryParameter(name: String): List<Int> =
+    request.queryParameters[name]
+        ?.split(",")
+        ?.mapNotNull { it.trim().toIntOrNull() }
+        ?.takeIf { it.isNotEmpty() }
+        ?: throw SoftcoverException.BadRequest("Invalid query parameter: $name")

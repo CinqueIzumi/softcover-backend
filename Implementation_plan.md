@@ -143,10 +143,18 @@ Reuses the `BookEdition` model from Step 2.
 
 *Test:* known book id with multiple editions; check ordering + author contributions.
 
-### Step 6 — `GET /editions?ids=1,2,3`  ← `GetEditionsByIds`
-Batch editions, chunked at 200. Reuses `BookEdition` mapper.
+### Step 6 — `GET /editions?ids=1,2,3` ✅ (done)  ← `GetEditionsByIds`
+Batch editions. Reuses the `BookEdition` model + `EditionDetailFragment` mapper from Step 5.
+- ✅ `GetEditionsByIds` op (`graphql/query/`) — `editions(where: id _in $ids)` spreading `EditionDetailFragment`.
+- ✅ `EditionDataSource.getEditionsByIds` (+`Impl`) maps each row via `toBookEdition()`; `404` via
+  `orNotFound()` when the upstream returns no data.
+- ✅ Per-id `AsyncCache<Int, BookEdition>` (1-day TTL): `getAll` serves cached editions and bulk-loads
+  only the missing ids, chunking the fetch at 200. No canonical resolution — editions have no
+  canonical-redirect concept, so results are just re-sorted into requested order (bogus ids absent).
+- ✅ Route wired under `authenticate("external")`; ids via `requireIntListQueryParameter("ids")`,
+  token from `UserPrincipal`.
 
-*Test:* multi-id request incl. a bogus id.
+*Test:* multi-id request incl. a bogus id; repeat to confirm cache hit.
 
 ### Step 7 — `GET /editions/by-isbn/{isbn}`  ← `GetEditionByIsbn`
 Barcode lookup: try ISBN-13 then ISBN-10 in one query, return first hit.
