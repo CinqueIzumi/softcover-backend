@@ -4,6 +4,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import nl.rhaydus.plugins.requireIntListQueryParameter
 import nl.rhaydus.plugins.requireIntParameter
+import nl.rhaydus.plugins.requireParameter
 import nl.rhaydus.plugins.userPrincipal
 
 fun Route.editionRoutes(editionDataSource: EditionDataSource) {
@@ -29,5 +30,16 @@ fun Route.editionRoutes(editionDataSource: EditionDataSource) {
         )
 
         return@get call.respond(editions)
+    }
+
+    get("editions/by-isbn/{isbn}") {
+        val isbn = call.requireParameter("isbn")
+
+        val response = editionDataSource.getEditionByIsbn(
+            isbn = isbn,
+            token = call.userPrincipal.token,
+        )
+
+        return@get call.respond(response)
     }
 }

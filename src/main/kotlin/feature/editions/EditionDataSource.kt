@@ -12,4 +12,9 @@ interface EditionDataSource {
         ids: List<Int>,
         token: String,
     ): List<BookEdition>
+
+    suspend fun getEditionByIsbn(
+        isbn: String,
+        token: String,
+    ): IsbnEditionMatchResponse
 }

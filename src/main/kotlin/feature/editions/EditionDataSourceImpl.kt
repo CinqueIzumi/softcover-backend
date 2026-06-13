@@ -11,6 +11,7 @@ import nl.rhaydus.core.mapping.toBookEdition
 import nl.rhaydus.core.model.BookEdition
 import nl.rhaydus.core.model.orNotFound
 import nl.rhaydus.graphql.GetBookIdByEditionIdQuery
+import nl.rhaydus.graphql.GetEditionByIsbnQuery
 import nl.rhaydus.graphql.GetEditionsByIdsQuery
 import nl.rhaydus.hardcover.HardcoverClient
 import java.time.Duration
@@ -25,6 +26,11 @@ class EditionDataSourceImpl(
 
     private val editionCache: AsyncCache<Int, BookEdition> = Caffeine
         .newBuilder()
+        .expireAfterWrite(Duration.ofDays(1))
+        .maximumSize(10_000)
+        .buildAsync()
+
+    private val isbnMatchCache: AsyncCache<String, IsbnEditionMatchResponse> = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofDays(1))
         .maximumSize(10_000)
         .buildAsync()
@@ -58,7 +64,34 @@ class EditionDataSourceImpl(
         return ids.mapNotNull { byId[it] }
     }
 
+    override suspend fun getEditionByIsbn(
+        isbn: String,
+        token: String,
+    ): IsbnEditionMatchResponse {
+        return isbnMatchCache.get(isbn) { key, _ ->
+            scope.future { fetchEditionByIsbn(key, token) }
+        }.await()
+    }
+
     // region Network fetching
+    private suspend fun fetchEditionByIsbn(
+        isbn: String,
+        token: String,
+    ): IsbnEditionMatchResponse {
+        val edition = hardcoverClient.query(
+            token = token,
+            query = GetEditionByIsbnQuery(isbn = isbn),
+        )
+            .editions
+            .firstOrNull()
+            .orNotFound(message = "No edition was found for isbn10/13 = $isbn")
+
+        return IsbnEditionMatchResponse(
+            bookId = edition.book_id,
+            editionId = edition.id,
+        )
+    }
+
     private suspend fun fetchEditionsByIds(
         ids: List<Int>,
         token: String,

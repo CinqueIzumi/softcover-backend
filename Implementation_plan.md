@@ -156,9 +156,16 @@ Batch editions. Reuses the `BookEdition` model + `EditionDetailFragment` mapper 
 
 *Test:* multi-id request incl. a bogus id; repeat to confirm cache hit.
 
-### Step 7 — `GET /editions/by-isbn/{isbn}`  ← `GetEditionByIsbn`
-Barcode lookup: try ISBN-13 then ISBN-10 in one query, return first hit.
-Returns `{ "bookId", "editionId" }` or `404`.
+### Step 7 — `GET /editions/by-isbn/{isbn}` ✅ (done)  ← `GetEditionByIsbn`
+Barcode lookup: matches ISBN-13 or ISBN-10 in one query, return first hit.
+Returns `IsbnEditionMatchResponse` `{ "bookId", "editionId" }` or `404`.
+- ✅ `GetEditionByIsbn` op (`graphql/query/`) — single `editions(where: _or [isbn_13 _eq, isbn_10 _eq], limit: 1)`
+  selecting `id` + `book_id` (collapsed from the original two aliased lookups into one `_or` filter).
+- ✅ `EditionDataSource.getEditionByIsbn` (+`Impl`) — builds `IsbnEditionMatchResponse(bookId = book_id,
+  editionId = id)` from the matched row; `404` via `orNotFound()` when no edition matches.
+- ✅ Per-isbn `AsyncCache<String, IsbnEditionMatchResponse>` (1-day TTL) caching the full match.
+- ✅ Route wired under `authenticate("external")`; isbn via `requireParameter("isbn")`, token from
+  `UserPrincipal`.
 
 *Test:* a known ISBN-13 and a known ISBN-10; one unknown.
 
