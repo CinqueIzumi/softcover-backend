@@ -8,10 +8,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.future.future
 import nl.rhaydus.core.mapping.toBook
+import nl.rhaydus.core.mapping.toBookEdition
 import nl.rhaydus.core.model.Book
+import nl.rhaydus.core.model.BookEdition
 import nl.rhaydus.core.model.orNotFound
 import nl.rhaydus.graphql.GetBookByIdQuery
 import nl.rhaydus.graphql.GetBooksByIdsQuery
+import nl.rhaydus.graphql.GetEditionsByBookIdQuery
 import nl.rhaydus.hardcover.HardcoverClient
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
@@ -63,6 +66,16 @@ class BookDataSourceImpl(
         byId.values.forEach(::cacheBookUnderOwnId)
 
         return ids.mapNotNull { byId[it] }
+    }
+
+    override suspend fun getEditionsByBookId(
+        bookId: Int,
+        token: String,
+    ): List<BookEdition> {
+        return client
+            .query(token = token, query = GetEditionsByBookIdQuery(bookId = bookId))
+            .orNotFound(message = "No editions were found for book with id=$bookId")
+            .editions.map { it.editionDetailFragment.toBookEdition() }
     }
 
     private fun cacheBookUnderOwnId(book: Book) {

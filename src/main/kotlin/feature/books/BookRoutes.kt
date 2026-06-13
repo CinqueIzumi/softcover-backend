@@ -32,4 +32,15 @@ fun Route.bookRoutes(bookDataSource: BookDataSource) {
 
         return@get call.respond(books)
     }
+
+    get("books/{id}/editions") {
+        val bookId = call.requireIntParameter("id")
+
+        val editions = bookDataSource.getEditionsByBookId(
+            bookId = bookId,
+            token = call.userPrincipal.token,
+        )
+
+        return@get call.respond(editions)
+    }
 }

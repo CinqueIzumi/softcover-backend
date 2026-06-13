@@ -131,9 +131,15 @@ Tiny, isolated. Returns `{ "bookId": ... }` or `404`.
 
 *Test:* one known edition id; one bogus.
 
-### Step 5 — `GET /books/{id}/editions`  ← `GetEditionsByBookId`
+### Step 5 — `GET /books/{id}/editions` ✅ (done)  ← `GetEditionsByBookId`
 Returns `[ BookEdition ]` ordered by `users_count desc`, including edition-level authors.
 Reuses the `BookEdition` model from Step 2.
+- ✅ `GetEditionsByBookId` op (`graphql/query/`) — `editions(where: book_id _eq, order_by: users_count desc)`.
+- ✅ `EditionDetailFragment` (`graphql/fragment/`) — spreads `EditionFragment` + `contributions.author`
+  for edition-level authors.
+- ✅ `EditionDetailFragment.toBookEdition()` (`core/mapping/BookMapper.kt`) maps author contributions.
+- ✅ `BookDataSource.getEditionsByBookId` (+`Impl`); `404` via `orNotFound()` when no editions match.
+- ✅ Route wired under `authenticate("external")`; token from `UserPrincipal`.
 
 *Test:* known book id with multiple editions; check ordering + author contributions.
 

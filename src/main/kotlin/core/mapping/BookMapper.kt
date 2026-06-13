@@ -1,10 +1,7 @@
 package nl.rhaydus.core.mapping
 
 import nl.rhaydus.core.model.*
-import nl.rhaydus.graphql.fragment.BookDetailFragment
-import nl.rhaydus.graphql.fragment.BookListFragment
-import nl.rhaydus.graphql.fragment.BookSeriesFragment
-import nl.rhaydus.graphql.fragment.EditionFragment
+import nl.rhaydus.graphql.fragment.*
 
 fun BookDetailFragment.toBook(): Book {
     val listFragment: BookListFragment = this.bookListFragment
@@ -58,6 +55,18 @@ internal fun EditionFragment.toBookEdition(
     readingFormatId = reading_format_id,
     bookId = book_id,
 )
+
+ fun EditionDetailFragment.toBookEdition(): BookEdition {
+    val authors = contributions.mapNotNull { contribution ->
+        val author = contribution.author ?: return@mapNotNull null
+
+        Author(
+            name = author.name,
+            id = author.id,
+        )
+    }
+    return editionFragment.toBookEdition(authors = authors)
+}
 
 private fun BookListFragment.canonicalIdOrNull(): Int? {
     val canonicalId = canonical?.id ?: return null
