@@ -14,6 +14,7 @@ fun Application.configureStatusPages() {
             val status = when (cause) {
                 is SoftcoverException.ResourceNotFound -> HttpStatusCode.NotFound
                 is SoftcoverException.Unauthorized -> HttpStatusCode.Unauthorized
+                is SoftcoverException.BadRequest -> HttpStatusCode.BadRequest
             }
 
             call.respond(status, ErrorResponse(cause.message ?: "Unexpected error"))

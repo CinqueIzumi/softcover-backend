@@ -115,15 +115,19 @@ types (`Author` §4.3, `BookSeries` §4.4, `Tag` §4.5, `BookEdition` §4.2).
 *Test:* `GET /books/<knownId>`; verify a known canonical-redirect id returns the
 survivor; verify a bogus id → `404`.
 
-### Step 3 — `GET /books?ids=1,2,3`  ← `GetBooksByIds`
+### Step 3 — `GET /books?ids=1,2,3` ✅ (done)  ← `GetBooksByIds`
 Reuses the `Book` model and mapper from Step 2. Adds: chunking at 200 internally,
 and **re-sorting results into requested order** (canonical/missing ids sort last, §6.2).
 
 *Test:* request a deliberately out-of-order id list incl. one bogus id; verify
 output order matches input and the missing one is absent/last.
 
-### Step 4 — `GET /editions/{editionId}/book-id`  ← `GetBookIdByEditionId`
+### Step 4 — `GET /editions/{editionId}/book-id` ✅ (done)  ← `GetBookIdByEditionId`
 Tiny, isolated. Returns `{ "bookId": ... }` or `404`.
+- ✅ `GetBookIdByEditionId` op (`graphql/query/`) — `editions(where: id _eq, limit: 1)` → `book_id`.
+- ✅ `EditionDataSource` (+`Impl`) — own `AsyncCache<Int, Int>` (1-day TTL); `404` via
+  `orNotFound()` when no edition matches.
+- ✅ Route wired under `authenticate("external")`; token from `UserPrincipal`.
 
 *Test:* one known edition id; one bogus.
 

@@ -7,6 +7,8 @@ import nl.rhaydus.core.model.SoftcoverException
 import nl.rhaydus.core.model.UserPrincipal
 import nl.rhaydus.feature.books.BookDataSourceImpl
 import nl.rhaydus.feature.books.bookRoutes
+import nl.rhaydus.feature.editions.EditionDataSourceImpl
+import nl.rhaydus.feature.editions.editionRoutes
 import nl.rhaydus.feature.settings.SettingsRepositoryImpl
 import nl.rhaydus.feature.settings.settingsRoutes
 import nl.rhaydus.feature.user.meRoutes
@@ -15,7 +17,8 @@ import nl.rhaydus.hardcover.hardcoverClient
 
 fun Application.configureRouting() {
     val repo = SettingsRepositoryImpl(db = database)
-    val bookService = BookDataSourceImpl(client = hardcoverClient)
+    val bookDataSource = BookDataSourceImpl(client = hardcoverClient)
+    val editionDataSource = EditionDataSourceImpl(hardcoverClient)
 
     routing {
         authenticate("external") {
@@ -23,10 +26,18 @@ fun Application.configureRouting() {
 
             meRoutes(dataSource = userDataSource)
 
-            bookRoutes(bookDataSource = bookService)
+            bookRoutes(bookDataSource = bookDataSource)
+
+            editionRoutes(editionDataSource = editionDataSource)
         }
     }
 }
 
 val ApplicationCall.userPrincipal: UserPrincipal
     get() = principal<UserPrincipal>() ?: throw SoftcoverException.Unauthorized()
+
+fun ApplicationCall.requireParameter(name: String): String =
+    parameters[name] ?: throw SoftcoverException.BadRequest("Missing path parameter: $name")
+
+fun ApplicationCall.requireIntParameter(name: String): Int =
+    parameters[name]?.toIntOrNull() ?: throw SoftcoverException.BadRequest("Invalid path parameter: $name")

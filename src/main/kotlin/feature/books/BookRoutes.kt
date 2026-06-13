@@ -1,14 +1,14 @@
 package nl.rhaydus.feature.books
 
-import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import nl.rhaydus.core.model.SoftcoverException
+import nl.rhaydus.plugins.requireIntParameter
 import nl.rhaydus.plugins.userPrincipal
 
 fun Route.bookRoutes(bookDataSource: BookDataSource) {
     get("books/{id}") {
-        val id = call.parameters["id"]?.toIntOrNull()
-            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val id = call.requireIntParameter("id")
 
         val book = bookDataSource.getBookById(
             id = id,
@@ -23,7 +23,7 @@ fun Route.bookRoutes(bookDataSource: BookDataSource) {
             ?.split(",")
             ?.mapNotNull { it.trim().toIntOrNull() }
             ?.takeIf { it.isNotEmpty() }
-            ?: return@get call.respond(HttpStatusCode.BadRequest)
+            ?: throw SoftcoverException.BadRequest("Invalid query parameter: ids")
 
         val books = bookDataSource.getBooksByIds(
             ids = ids,
